@@ -14,3 +14,7 @@ export const findAllUsers = (callback) => {
   const query = `SELECT user_id, email, username FROM user_table`;
   connection.query(query, callback);
 };
+export const findUserById = (userId, callback) => {
+    const query = `SELECT user_id, email, username FROM user_table WHERE user_id = ?`;
+    connection.query(query, [userId], callback);
+  };
