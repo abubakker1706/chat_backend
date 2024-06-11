@@ -1,4 +1,4 @@
-import { sendMessage as sendMsg, sendGroupMessage as sendGrpMsg, addMemberToGroup as addMember, getMessages as getMsgs } from '../model/chatModel.js';
+import { sendMessage as sendMsg, sendGroupMessage as sendGrpMsg, addMemberToGroup as addMember, getMessages as getMsgs, createGroup, transferMessagesToGroup, insertGroupMessages, getMessagedUsers } from '../model/chatModel.js';
 
 export const sendMessageController = (req, res) => {
     const { senderId, receiverId, message } = req.body;
@@ -40,7 +40,48 @@ export const getMessagesController = (req, res) => {
             console.error(err);
             return res.status(500).json({ error: 'Database error' });
         }
-        res.status(200).json({ success: true, messages });
+        res.status(200).json({ success: true, data:messages });
     });
 };
 
+
+
+
+export const convertToGroupChat = (req, res) => {
+    const { userId1, userId2, groupName } = req.body;
+
+    createGroup(groupName, (err, result) => {
+        if (err) return res.status(500).json({ error: 'Database error creating group' });
+
+        const groupId = result.insertId;
+
+        addMembersToGroup(groupId, userId1, userId2, (err) => {
+            if (err) return res.status(500).json({ error: 'Database error adding members to group' });
+
+           
+            transferMessagesToGroup(userId1, userId2, groupId, (err, messages) => {
+                if (err) return res.status(500).json({ error: 'Database error retrieving messages' });
+
+                if (messages.length > 0) {
+                    insertGroupMessages(groupId, messages, (err) => {
+                        if (err) return res.status(500).json({ error: 'Database error transferring messages' });
+
+                        res.status(200).json({ success: true, message: 'Chat converted to group successfully' });
+                    });
+                } else {
+                    res.status(200).json({ success: true, message: 'Chat converted to group successfully, no messages to transfer' });
+                }
+            });
+        });
+    });
+};
+export const getMessagedUsersController = (req, res) => {
+    const { userId } = req.params;
+    getMessagedUsers(userId, (err, data) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.status(200).json({ success: true, data });
+    });
+};

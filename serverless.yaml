@@ -1,0 +1,130 @@
+service: chat-application
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  environment:
+    WEBSOCKET_ENDPOINT: https://7xd79lsle7.execute-api.eu-north-1.amazonaws.com/test/@connections
+custom:
+  websocketEndpoint:
+    Fn::Join:
+      - ''
+      - - 'https://'
+        - Ref: WebSocketApi
+        - '.execute-api.'
+        - Ref: AWS::Region
+        - '.amazonaws.com/dev'
+
+functions:
+  register:
+    handler: lambda/auth.registerHandler
+    events:
+      - http:
+          path: api/auth/register
+          method: post
+  login:
+    handler: lambda/auth.loginHandler
+    events:
+      - http:
+          path: api/auth/login
+          method: post
+  getUsers:
+    handler: lambda/auth.getUsersHandler
+    events:
+      - http:
+          path: api/auth/get-users
+          method: get
+  searchUsers:
+    handler: lambda/auth.searchUsersHandler
+    events:
+      - http:
+          path: api/auth/search
+          method: get
+  getUserById:
+    handler: lambda/auth.getUserByIdHandler
+    events:
+      - http:
+          path: api/auth/user
+          method: get
+  sendMessage:
+    handler: lambda/chat.sendMessageHandler
+    events:
+      - http:
+          path: api/chat/send
+          method: post
+  sendGroupMessage:
+    handler: lambda/chat.sendGroupMessageHandler
+    events:
+      - http:
+          path: api/chat/send-group-message
+          method: post
+  addMemberToGroup:
+    handler: lambda/chat.addMemberToGroupHandler
+    events:
+      - http:
+          path: api/chat/add-member
+          method: post
+  getMessages:
+    handler: lambda/chat.getMessagesHandler
+    events:
+      - http:
+          path: api/chat/get-messages
+          method: get
+  convertToGroupChat:
+    handler: lambda/chat.convertToGroupChatHandler
+    events:
+      - http:
+          path: api/chat/convert-to-group
+          method: post
+  getMessagedUsers:
+    handler: lambda/chat.getMessagedUsersHandler
+    events:
+      - http:
+          path: api/chat/messaged-users/{userId}
+          method: get
+  websocketHandler:
+    handler: lambda/websocket.handler
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $disconnect
+      - websocket:
+          route: $default
+      - websocket:
+          route: sendMessage
+      - websocket:
+          route: sendGroupMessage
+       - websocket:
+          route: typing
+      - websocket:
+          route: stopTyping
+      - websocket:
+          route: joinGroup
+      - websocket:
+          route: join
+
+resources:
+  Resources:
+    WebSocketApi:
+      Type: AWS::ApiGatewayV2::Api
+      Properties:
+        Name: ChatWebSocketAPI
+        ProtocolType: WEBSOCKET
+        RouteSelectionExpression: $request.body.action
+
+    WebSocketDeployment:
+      Type: AWS::ApiGatewayV2::Deployment
+      Properties:
+        ApiId:
+          Ref: WebSocketApi
+
+    WebSocketStage:
+      Type: AWS::ApiGatewayV2::Stage
+      Properties:
+        StageName: dev
+        DeploymentId:
+          Ref: WebSocketDeployment
+        ApiId:
+          Ref: WebSocketApi
