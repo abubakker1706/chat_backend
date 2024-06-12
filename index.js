@@ -7,6 +7,9 @@ import cors from 'cors'
 import { Server } from 'socket.io';
 import http from 'http';
 import authMiddleware from './server/middleware/auth.js';
+import  {registerHandler,loginHandler,getUsersHandler,searchUsersHandler,getUserByIdHandler } from "./lambda/auth.js"
+import { sendMessageHandler,sendGroupMessageHandler,addMemberToGroupHandler,getMessagesHandler,convertToGroupChatHandler,getMessagedUsersHandler } from './lambda/chat.js';
+import { handler as websocketHandler} from './lambda/websocket.js';
 const app = express();
 
 app.use(cors())
@@ -109,3 +112,50 @@ socket.on('disconnect', () => {
       });
   });
 });
+
+// handler
+export const authHandler = async (event) => {
+
+  switch (event.path) {
+    case '/register':
+      return registerHandler(event);
+    case '/login':
+      return loginHandler(event);
+    case '/getUsers':
+      return getUsersHandler(event);
+    case '/searchUsers':
+      return searchUsersHandler(event);
+    case '/getUserById':
+      return getUserByIdHandler(event);
+    default:
+      return { statusCode: 404, body: JSON.stringify({ message: 'Not Found' }) };
+  }
+};
+
+
+export const chatHandler = async (event) => {
+ 
+  switch (event.path) {
+    case '/sendMessage':
+      return sendMessageHandler(event);
+    case '/sendGroupMessage':
+      return sendGroupMessageHandler(event);
+    case '/addMemberToGroup':
+      return addMemberToGroupHandler(event);
+    case '/getMessages':
+      return getMessagesHandler(event);
+    case '/convertToGroupChat':
+      return convertToGroupChatHandler(event);
+    case '/getMessagedUsers':
+      return getMessagedUsersHandler(event);
+    default:
+      return { statusCode: 404, body: JSON.stringify({ message: 'Not Found' }) };
+  }
+};
+
+
+export const socketHandler = async (event) => {
+  console.log(event,"event log from socket");
+  
+  return websocketHandler(event);
+};
