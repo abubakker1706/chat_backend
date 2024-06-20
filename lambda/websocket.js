@@ -155,22 +155,30 @@
 import AWS from 'aws-sdk';
 
 const apiGateway = new AWS.ApiGatewayManagementApi({
-    endpoint: "https://gsnpc2ee7i.execute-api.eu-north-1.amazonaws.com/test/@connections"
+    endpoint: "https://gsnpc2ee7i.execute-api.eu-north-1.amazonaws.com/test"
 });
 
 export const handler = async (event) => {
     const { routeKey, requestContext, body } = event;
     const connectionId = requestContext.connectionId;
 
-    switch (routeKey) {
-        case '$connect':
-            return handleConnect(connectionId);
-        case '$disconnect':
-            return handleDisconnect(connectionId);
-        case 'sendMessage':
-            return handleSendMessage(connectionId, body);
-        default:
-            return handleDefault();
+    try {
+        switch (routeKey) {
+            case '$connect':
+                return await handleConnect(connectionId);
+            case '$disconnect':
+                return await handleDisconnect(connectionId);
+            case 'sendMessage':
+                return await handleSendMessage(connectionId, body);
+            default:
+                return handleDefault();
+        }
+    } catch (err) {
+        console.error(`Error handling route ${routeKey}: ${err.message}`, err);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: 'Internal server error' })
+        };
     }
 };
 
@@ -191,27 +199,35 @@ const handleDisconnect = async (connectionId) => {
 };
 
 const handleSendMessage = async (connectionId, body) => {
-    const message = JSON.parse(body).message;
+    let message;
+    try {
+        message = JSON.parse(body).message;
+    } catch (err) {
+        console.error(`Failed to parse message body: ${err.message}`, err);
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Invalid message format' })
+        };
+    }
 
     console.log(`Received message: ${message} from ${connectionId}`);
-
-    const response = {
-        statusCode: 200,
-        body: 'Message sent'
-    };
 
     try {
         await apiGateway.postToConnection({
             ConnectionId: connectionId,
             Data: JSON.stringify({ message: `You said: ${message}` })
         }).promise();
+        return {
+            statusCode: 200,
+            body: 'Message sent'
+        };
     } catch (err) {
-        console.error(`Failed to send message: ${err}`);
-        response.statusCode = 500;
-        response.body = 'Failed to send message';
+        console.error(`Failed to send message: ${err.message}`, err);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: err.message })
+        };
     }
-
-    return response;
 };
 
 const handleDefault = () => {

@@ -82,6 +82,7 @@ socket.on('disconnect', () => {
           sender_id: data.senderId,
           receiver_id: data.receiverId,
           message: data.message,
+          sender_name: data.senderName
        
       };
       io.to(data.receiverId).emit('receiveMessage', message);
@@ -101,14 +102,16 @@ socket.on('disconnect', () => {
   socket.on('typing', (data) => {
       console.log(`User ${data.senderId} is typing to ${data.receiverId}`);
       io.to(data.receiverId).emit('typing', {
-          sender_id: data.senderId
+          sender_id: data.senderId,
+          receiver_id: data.receiverId
       });
   });
 
   socket.on('stop_typing', (data) => {
       console.log(`User ${data.senderId} stopped typing to ${data.receiverId}`);
       io.to(data.receiverId).emit('stop_typing', {
-          sender_id: data.senderId
+          sender_id: data.senderId,
+          receiver_id: data.receiverId
       });
   });
 });
